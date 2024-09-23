@@ -38,7 +38,7 @@ This application uses PostgreSQL as the database
 
 A default teacher account is created with the email "nagesh@gmail.com" and password "123456" when running rails db:seed
 
-After sucssefully all above steps:
+After successfully completing all the above steps...
 
 login with:
 
