@@ -1,0 +1,35 @@
+<!-- app/views/devise/sessions/new.html.erb -->
+
+<div class="login-container">
+  <div class="login-card">
+    <h2 class="login-title">tailwebs</h2>
+
+    <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-container">
+          <i class="fas fa-envelope icon"></i>
+          <%= f.email_field :email, autofocus: true, class: 'input-field' %>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-container">
+          <i class="fas fa-lock icon"></i>
+          <%= f.password_field :password, autocomplete: "off", class: 'input-field', id: 'password' %>
+          <i class="fas fa-eye icon" id="togglePassword"></i>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <%= f.submit "Log in", class: 'login-button' %>
+      </div>
+    <% end %>
+
+    <div class="additional-actions">
+      <%= render "devise/shared/links" %>
+    </div>
+  </div>
+</div>
+

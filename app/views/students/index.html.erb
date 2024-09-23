@@ -1,0 +1,194 @@
+
+<nav class="header-container">
+  <div><h1>tailwebs.</h1></div>
+  <div class="add-button-container">
+    <%= link_to 'Home', students_path, class: 'add-button' %>
+    <%= button_to 'Logout', destroy_teacher_session_path, method: :delete, data: { confirm: 'Are you sure you want to logout?' }, class: 'add-button delete-button' %>
+  </div>
+</nav>
+
+  <div class="flash">
+  </div>
+
+<div class="table-container">
+  <table class="student-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Subject</th>
+        <th>Marks</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="student-list">
+      <% @students.each do |student| %>
+      <tr data-id="<%= student.id %>">
+        <td>
+          <div class="student-info">
+            <div class="avatar"><%= student&.name[0] %></div>
+            <span class="student-name"><%= student.name %></span>
+          </div>
+        </td>
+        <td contenteditable="true"><%= student.subject %></td>
+        <td contenteditable="true"><%= student.marks %></td>
+        <td>
+          <div class="dropdown">
+            <label class="dropdown-button">⋮</label>
+            <div class="dropdown-content">
+              <button class="edit-btn btn-action edit-button" data-id="<%= student.id %>"> Edit</button>
+              <button class="delete-btn btn-action" data-id="<%= student.id %>">Delete</button>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<button id="new-student-btn" class="btn-add">Add</button>
+
+<%= render "new"%>
+
+<%= render "edit"%>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Fetch modal elements
+  const studentModal = document.getElementById('student-modal');
+  const editStudentModal = document.getElementById('edit-student-modal');
+
+  function showErrorMessage(inputElement, message) {
+    let errorMessage = inputElement.nextElementSibling;
+    if (!errorMessage || !errorMessage.classList.contains('error-message')) {
+      errorMessage = document.createElement('span');
+      errorMessage.classList.add('error-message');
+      inputElement.parentElement.appendChild(errorMessage);
+    }
+    errorMessage.innerText = message;
+    errorMessage.style.display = 'block';
+  }
+
+  function clearErrorMessages() {
+    document.querySelectorAll('.error-message').forEach(error => error.style.display = 'none');
+  }
+
+  // Delete student
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const studentId = this.dataset.id;
+      fetch(`/students/${studentId}`, { method: 'DELETE' })
+        .then(() => {
+          this.closest('tr').remove();
+        })
+        .catch(error => console.error('Error deleting student:', error));
+    });
+  });
+
+  // Edit student
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      clearErrorMessages();
+      const row = this.closest('tr');
+      const studentId = row.dataset.id;
+      document.getElementById('edit-student-name').value = row.cells[0].innerText.slice(1);
+      document.getElementById('edit-student-subject').value = row.cells[1].innerText;
+      document.getElementById('edit-student-marks').value = row.cells[2].innerText;
+      editStudentModal.style.display = 'flex';
+      document.getElementById('update-student-btn').onclick = function() {
+        const updatedName = document.getElementById('edit-student-name').value.trim();
+        const updatedSubject = document.getElementById('edit-student-subject').value.trim();
+        const updatedMarks = document.getElementById('edit-student-marks').value.trim();
+
+        if (!updatedName) {
+          showErrorMessage(document.getElementById('edit-student-name'), 'Name is required.');
+          return;
+        }
+        if (!updatedSubject) {
+          showErrorMessage(document.getElementById('edit-student-subject'), 'Subject is required.');
+          return;
+        }
+        if (!updatedMarks || isNaN(updatedMarks) || updatedMarks > 100) {
+          showErrorMessage(document.getElementById('edit-student-marks'), 'Marks must be a valid number and not more than 100.');
+          return;
+        }
+
+        const updatedData = { name: updatedName, subject: updatedSubject, marks: updatedMarks };
+        fetch(`/students/${studentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedData)
+        })
+          .then(response => {
+            const flashMessage = document.querySelector('.flash');
+            if (response.ok) {
+              window.location.reload();
+              flashMessage.innerHTML = `<div class="flash__message notice">Student updated successfully.</div>`
+               setTimeout(() => {
+                flashMessage.innerHTML = ''; // Optionally hide the message after 3 seconds
+              }, 30000);
+            } else {
+              throw new Error('Failed to update student');
+            }
+          })
+          .catch(error => console.error('Error updating student:', error));
+
+        editStudentModal.style.display = 'none';
+      };
+    });
+  });
+
+  // Add new student
+  document.getElementById('new-student-btn').addEventListener('click', function() {
+    clearErrorMessages();
+    studentModal.style.display = 'flex';
+  });
+
+  document.getElementById('save-student-btn').addEventListener('click', function(event) {
+    clearErrorMessages();
+    const name = document.getElementById('student-name').value.trim();
+    const subject = document.getElementById('student-subject').value.trim();
+    const marks = document.getElementById('student-marks').value.trim();
+
+    if (!name) {
+      showErrorMessage(document.getElementById('student-name'), 'Name is required.');
+      return;
+    }
+    if (!subject) {
+      showErrorMessage(document.getElementById('student-subject'), 'Subject is required.');
+      return;
+    }
+    if (!marks || isNaN(marks) || marks > 100) {
+      showErrorMessage(document.getElementById('student-marks'), 'Marks must be a valid number and not more than 100.');
+      return;
+    }
+
+    const data = { name: name, subject: subject, marks: marks };
+    fetch('/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+      .then(response => {
+        const flashMessage = document.querySelector('.flash');
+        if (response.ok) {
+          flashMessage.innerHTML = `<div class="flash__message notice">Student updated successfully.</div>`
+          window.location.reload();
+        } else {
+          throw new Error('Failed to create student');
+        }
+      })
+      .catch(error => console.error('Error adding student:', error));
+  });
+
+  // Close modal when clicking outside
+  window.addEventListener('click', function(event) {
+    if (event.target === studentModal) {
+      studentModal.style.display = 'none';
+    }
+    if (event.target === editStudentModal) {
+      editStudentModal.style.display = 'none';
+    }
+  });
+});
+</script>
+
