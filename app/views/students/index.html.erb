@@ -7,8 +7,7 @@
   </div>
 </nav>
 
-  <div class="flash">
-  </div>
+<div id="flash-container" class="flash"></div>
 
 <div class="table-container">
   <table class="student-table">
@@ -53,6 +52,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+ const flashMessage = document.querySelector('.flash');
+
+  function showFlashMessage(message, type = 'notice') {
+    flashMessage.innerHTML = `<div class="flash__message ${type}">${message}</div>`;
+    setTimeout(() => flashMessage.innerHTML = '', 3000); // Clear the flash message after 3 seconds
+  }
   // Fetch modal elements
   const studentModal = document.getElementById('student-modal');
   const editStudentModal = document.getElementById('edit-student-modal');
@@ -171,8 +177,11 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(response => {
         const flashMessage = document.querySelector('.flash');
         if (response.ok) {
-          flashMessage.innerHTML = `<div class="flash__message notice">Student updated successfully.</div>`
           window.location.reload();
+          flashMessage.innerHTML = `<div class="flash__message notice">Student updated successfully.</div>`
+          setTimeout(() => {
+            flashMessage.innerHTML = '';
+          }, 30000);
         } else {
           throw new Error('Failed to create student');
         }
@@ -189,6 +198,50 @@ document.addEventListener('DOMContentLoaded', function() {
       editStudentModal.style.display = 'none';
     }
   });
+  // Inline edit for marks and subject fields
+  document.querySelectorAll('.student-table tbody tr').forEach(row => {
+    row.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
+      cell.addEventListener('blur', function() { // Detect when the user leaves the cell
+        const studentId = row.dataset.id;
+        const updatedSubject = row.cells[1].innerText.trim();
+        const updatedMarks = row.cells[2].innerText.trim();
+
+        // Validation
+        if (!updatedSubject) {
+          showFlashMessage('Subject cannot be empty.', 'error');
+          return;
+        }
+        if (isNaN(updatedMarks) || updatedMarks < 0 || updatedMarks > 100) {
+          showFlashMessage('Marks must be a number between 0 and 100.', 'error');
+          return;
+        }
+
+        // Update the student's subject and marks
+        fetch(`/students/${studentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject: updatedSubject, marks: updatedMarks })
+        })
+          .then(response => {
+            if (response.ok) {
+              showFlashMessage('Student updated successfully.');
+            } else {
+              throw new Error('Failed to update student');
+            }
+          })
+          .catch(error => console.error('Error updating student:', error));
+      });
+
+      // Detect "Enter" key to finish editing as well
+      cell.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          cell.blur(); // Trigger 'blur' to save changes
+        }
+      });
+    });
+  });
 });
 </script>
+
 
